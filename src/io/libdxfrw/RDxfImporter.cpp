@@ -727,9 +727,8 @@ void RDxfImporter::addMText(const DRW_MText& data) {
 
     dxfServices.fixVersion2String(mtextString);
 
-    // TODO:
-    bool bold = false;
-    bool italic = false;
+    bool bold = s.fontFamily & 0x2000000;
+    bool italic = s.fontFamily & 0x1000000;
 
     RTextData d(
         RVector::invalid, ip,
@@ -737,12 +736,14 @@ void RDxfImporter::addMText(const DRW_MText& data) {
         valign, halign,
         dir, lss,
         data.interlin,
-        mtextString, dxfServices.fixFontName(s.font.c_str()),
+        mtextString, dxfServices.fixFontName(s.fontName.c_str()),
         bold,
         italic,
         data.angle,
         false
     );
+    d.setFontFile(s.font.c_str());
+    d.setBigFontFile(s.bigFont.c_str());
 
     QSharedPointer<RTextEntity> entity(new RTextEntity(document, d));
     importEntity(entity, &data);
@@ -825,8 +826,8 @@ void RDxfImporter::addText(const DRW_Text& data) {
     //int drawingDirection = 5;
     //double width = 100.0;
     double width = 0.0;
-    bool bold = false;
-    bool italic = false;
+    bool bold = s.fontFamily & 0x2000000;
+    bool italic = s.fontFamily & 0x1000000;
 
     RTextBasedData textBasedData(
         RVector::invalid, RVector::invalid,
@@ -836,7 +837,7 @@ void RDxfImporter::addText(const DRW_Text& data) {
         RS::LeftToRight, RS::Exact,
         1.0,
         data.text.c_str(),
-        dxfServices.fixFontName(s.font.c_str()),
+        dxfServices.fixFontName(s.fontName.c_str()),
         bold,                      // bold
         italic,                    // italic
         data.angle,
@@ -920,7 +921,14 @@ void RDxfImporter::addHatch(const DRW_Hatch* data) {
             RPatternLine patternLine;
             patternLine.angle = RMath::deg2rad(define->angle);
             patternLine.basePoint = RVector(define->origin.x, define->origin.y);
-            patternLine.offset = RVector(define->delta.x, define->delta.y);
+
+            double scale = 1.0;
+            double sinDelta = sin(patternLine.angle);
+            double cosDelta = cos(patternLine.angle);
+            double deltax = cosDelta * define->delta.x / scale + sinDelta * define->delta.y / scale;
+            double deltay = -sinDelta * define->delta.x / scale + cosDelta * define->delta.y / scale;
+
+            patternLine.offset = RVector(deltax, deltay);
             for (auto it2 = define->segments.begin(); it2 != define->segments.end(); it2++)
             {
                 patternLine.dashes.push_back(*it2);

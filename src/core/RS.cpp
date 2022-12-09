@@ -253,7 +253,9 @@ QStringList RS::getFileList(const QString& subDirectory, const QString& fileExte
  * \return A list of absolute paths to all font files found.
  */
 QStringList RS::getFontList() {
-    return getFileList("fonts", "cxf");
+    QStringList ret = getFileList("fonts", "cxf");
+    ret.append(getFileList("fonts", "shx"));
+    return ret;
 }
 
 /**

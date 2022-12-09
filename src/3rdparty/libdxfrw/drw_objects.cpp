@@ -820,6 +820,9 @@ void DRW_Textstyle::parseCode(int code, dxfReader *reader){
     case 71:
         genFlag = reader->getInt32();
         break;
+    case 1000:
+        fontName = reader->getString();
+        break;
     case 1071:
         fontFamily = reader->getInt32();
         break;

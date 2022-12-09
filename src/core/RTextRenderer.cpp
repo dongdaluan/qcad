@@ -25,6 +25,7 @@
 #include "RColor.h"
 #include "RDxfServices.h"
 #include "RFont.h"
+#include "RShxFont.h"
 #include "RFontList.h"
 #include "RTextRenderer.h"
 #include "RPainterPathDevice.h"
@@ -235,6 +236,7 @@ void RTextRenderer::renderSimple() {
     RS::HAlign horizontalAlignment = textData.getHAlign();
     QString fontName = textData.getFontName();
     QString fontFile = textData.getFontFile();
+    QString bigFontFile = textData.getBigFontFile();
     bool bold = textData.isBold();
     bool italic = textData.isItalic();
     bool underline = false;
@@ -292,10 +294,11 @@ void RTextRenderer::renderSimple() {
     blockHeight.push(textHeight);
     blockFont.push(fontName);
     blockFontFile.push(fontFile);
+    blockBigFontFile.push(bigFontFile);
     blockBold.push(bold);
     blockItalic.push(italic);
     blockUnderline.push(underline);
-    useCadFont.push(RFontList::isCadFont(getBlockFont(), getBlockFontFile()));
+    useCadFont.push(RFontList::isCadFont(getBlockFont(), getBlockFontFile(), getBlockBigFontFile()));
     openTags.push(QStringList());
 
     double horizontalAdvance = 0.0;
@@ -536,6 +539,7 @@ void RTextRenderer::render() {
     double lineSpacingFactor = textData.getLineSpacingFactor();
     QString fontName = textData.getFontName();
     QString fontFile = textData.getFontFile();
+    QString bigFontFile = textData.getBigFontFile();
     bool bold = textData.isBold();
     bool italic = textData.isItalic();
     bool underline = false;
@@ -619,10 +623,11 @@ void RTextRenderer::render() {
     blockHeight.push(textHeight);
     blockFont.push(fontName);
     blockFontFile.push(fontFile);
+    blockBigFontFile.push(bigFontFile);
     blockBold.push(bold);
     blockItalic.push(italic);
     blockUnderline.push(underline);
-    useCadFont.push(RFontList::isCadFont(fontName, fontFile));
+    useCadFont.push(RFontList::isCadFont(fontName, fontFile, bigFontFile));
     openTags.push(QStringList());
 
     width = 0.0;
@@ -773,7 +778,7 @@ void RTextRenderer::render() {
             lineFeed || paragraphFeed || xFeed || heightChange || underlineChange || stackedText ||
             fontChange || colorChange || end ||
             (blockEnd && blockChangedHeightOrFont) ||
-            optionalBreak) {
+            optionalBreak || wrap) {
 
             // render block _before_ format change that requires new block:
             if (textBlock!="") {
@@ -1767,6 +1772,19 @@ void RTextRenderer::render() {
     }
 }
 
+bool RTextRenderer::getUseShxFont() const
+{
+    if (!getUseCadFont())
+        return false;
+
+    if (!blockBigFontFile.isEmpty() && !blockBigFontFile.top().isEmpty())
+        return true;
+
+    if (!blockFontFile.isEmpty() && blockFontFile.top().endsWith(".shx", Qt::CaseInsensitive))
+        return true;
+    return false;
+}
+
 QList<RPainterPath> RTextRenderer::getPainterPathsForBlock(
     const QString& blockText,
     const QList<QTextLayout::FormatRange>& formats,
@@ -1777,7 +1795,17 @@ QList<RPainterPath> RTextRenderer::getPainterPathsForBlock(
     double& descent,
     double& usedHeight) {
 
-    if (getUseCadFont()) {
+    if (getUseShxFont()) {
+        return getPainterPathsForBlockShx(
+            blockText,
+            formats,
+            horizontalAdvance,
+            horizontalAdvanceNoSpacing,
+            horizontalAdvanceNoTrailingSpace,
+            ascent, descent,
+            usedHeight);
+    }
+    else if (getUseCadFont()) {
         return getPainterPathsForBlockCad(
                     blockText,
                     formats,
@@ -2171,6 +2199,204 @@ QList<RPainterPath> RTextRenderer::getPainterPathsForBlockCad(
     }
 
 //    qDebug() << "horizontalAdvance:" << horizontalAdvance;
+
+    return ret;
+}
+
+QList<RPainterPath> RTextRenderer::getPainterPathsForBlockShx(
+    const QString& blockText,
+    const QList<QTextLayout::FormatRange>& formats,
+    double& horizontalAdvance,
+    double& horizontalAdvanceNoSpacing,
+    double& horizontalAdvanceNoTrailingSpace,
+    double& ascent,
+    double& descent,
+    double& usedHeight) {
+
+    QList<RPainterPath> ret;
+
+    RShxFont* regFont = dynamic_cast<RShxFont*>(RFontList::getOrCreate(getBlockFontFile(), textData.getDocument()->getFileName()));
+    RShxFont* bigFont = dynamic_cast<RShxFont*>(RFontList::getOrCreate(getBlockBigFontFile(), textData.getDocument()->getFileName()));
+    RFont* standardFont = RFontList::get("Standard", false);
+
+    if (regFont == NULL && bigFont == NULL && standardFont == NULL) {
+        qWarning() << "standard font not found";
+        // make sure layout and transforms are always added:
+        lineBlockTransforms.append(QTransform());
+        RTextLayout tl;
+        //tl.correspondingPainterPaths = 1;
+        textLayouts.append(tl);
+        return QList<RPainterPath>() << RPainterPath();
+    }
+
+    double cursor = 0.0;
+    // cxf fonts define glyphs at a scale of 9:1:
+    double cxfScale = 1.0 / 9.0;
+    // invalid color, default, means use color of entity:
+    QColor currentColor = currentFormat.top().foreground().color();
+    bool gotLetterSpacing = false;
+    QMap<int, double> indexToCursorStart;
+    QMap<int, double> indexToCursorEnd;
+    QList<int> underlinedIndices;
+
+    RPainterPath ppBlock;
+#ifdef _DEBUG
+    ppBlock.setString(blockText);
+#endif
+    preparePathColor(ppBlock, currentColor);
+
+    RFont* font = NULL;
+    for (int i = 0; i < blockText.length(); ++i) {
+        QChar ch = blockText.at(i);
+        if (bigFont != NULL && bigFont->isEscapeChar(ch)) {
+            font = bigFont;
+        }
+        else if (regFont != NULL) {
+            font = regFont;
+        }
+        else {
+            font = standardFont;
+        }
+        if (font == NULL) {
+            qWarning() << "no valid font for char: " << ch;
+            continue;
+        }
+
+        //if (i==0) {
+        indexToCursorStart.insert(i, cursor);
+        //}
+
+        bool isSpace = false;
+        if (ch == ' ' || ch == QChar(Qt::Key_nobreakspace)) {
+            if (gotLetterSpacing) {
+                cursor -= font->getLetterSpacing() * cxfScale;
+            }
+            cursor += font->getWordSpacing() * cxfScale;
+            indexToCursorEnd.insert(i, cursor);
+            gotLetterSpacing = false;
+            isSpace = true;
+        }
+
+        // handle color and other format changes within the same block:
+        for (int fi = 0; fi < formats.size(); ++fi) {
+            QTextLayout::FormatRange format = formats.at(fi);
+
+            if (format.start == i && format.start + format.length > i) {
+                QColor color = format.format.foreground().color();
+                if (currentColor != color) {
+                    currentColor = color;
+                    // forced break in underline due to color change:
+                    underlinedIndices.append(-1);
+                }
+            }
+
+            if (format.start <= i && format.start + format.length > i) {
+                if (format.format.underlineStyle() == QTextCharFormat::SingleUnderline) {
+                    underlinedIndices.append(i);
+                }
+            }
+        }
+
+        if (isSpace) {
+            continue;
+        }
+
+        RPainterPath glyph = font->getGlyph(ch, draft);
+        // glyph not available in font (show as question mark):
+        if (glyph.elementCount() == 0) {
+            glyph = font->getGlyph('?', draft);
+        }
+        // if question mark is not available, show nothing:
+        if (glyph.elementCount() > 0) {
+            RPainterPath path(glyph);
+            preparePathTransform(path, cursor, cxfScale);
+            ppBlock.addPath(path);
+
+            // letter spacing:
+            cursor += path.boundingRect().width();
+            indexToCursorEnd.insert(i, cursor);
+            cursor += font->getLetterSpacing() * cxfScale;
+            gotLetterSpacing = true;
+        }
+    }
+
+    //qDebug() << "indexToCursor: " << indexToCursorStart;
+
+    // whole block is underlined:
+    if (getBlockUnderline()) {
+        underlinedIndices.clear();
+        for (int i = 0; i < blockText.length(); i++) {
+            underlinedIndices.append(i);
+        }
+    }
+
+    if (!underlinedIndices.isEmpty()) {
+        underlinedIndices.append(-1);
+    }
+
+    //qDebug() << "underlines: " << underlinedIndices;
+
+    RLine line;
+    int lastIndex = -1;
+    for (int i = 0; i < underlinedIndices.length(); i++) {
+        int idx = underlinedIndices[i];
+
+        bool prevUnderlined = lastIndex != -1 && lastIndex == idx - 1;
+        lastIndex = idx;
+
+        if (!prevUnderlined) {
+            if (line.isValid()) {
+                //qDebug() << "underline: " << line;
+                RPainterPath path;
+                path.moveTo(line.getStartPoint());
+                path.lineTo(line.getEndPoint());
+                path.addOriginalShape(QSharedPointer<RShape>(line.clone()));
+                preparePathTransform(path, 0.0, 1.0);
+                ppBlock.addPath(path);
+                line = RLine();
+            }
+            if (idx != -1) {
+                line.setStartPoint(RVector(indexToCursorStart[idx], -0.1));
+                line.setEndPoint(RVector(indexToCursorEnd[idx], -0.1));
+                //prevUnderlined = true;
+            }
+        }
+        else {
+            if (idx != -1) {
+                line.setEndPoint(RVector(indexToCursorEnd[idx], -0.1));
+            }
+        }
+        //qDebug() << "line: " << line;
+        //qDebug() << "cxfScale: " << cxfScale;
+    }
+
+    ret.append(ppBlock);
+
+    horizontalAdvance = cursor;
+    if (font != NULL)
+        horizontalAdvanceNoSpacing = cursor - font->getLetterSpacing() * cxfScale;
+    horizontalAdvanceNoTrailingSpace = horizontalAdvanceNoSpacing;
+    ascent = 1.08;
+    descent = -0.36;
+
+    if (blockText == " ") {
+        horizontalAdvance = horizontalAdvanceNoTrailingSpace;
+    }
+
+    // add text layout with paths to indicate we have to use painter paths for this text block:
+    lineBlockTransforms.append(QTransform());
+    RTextLayout tl(ret, currentColor);
+    QFont font1 = getBlockFont();
+    font1.setUnderline(getBlockUnderline());
+    tl.layout = QSharedPointer<QTextLayout>(new QTextLayout(blockText, font1));
+    tl.height = getBlockHeight();
+    textLayouts.append(tl);
+
+    if (!ret.isEmpty()) {
+        usedHeight = qMax(usedHeight, getBlockHeight());
+    }
+
+    //    qDebug() << "horizontalAdvance:" << horizontalAdvance;
 
     return ret;
 }

@@ -166,10 +166,18 @@ public:
 
     void setFontName(const QString& fontName);
 
+    QString getBigFontFile() const {
+        return bigFontFile;
+    }
+
+    void setBigFontFile(const QString& bigFontFile) {
+        this->bigFontFile = bigFontFile;
+    }
+
     QString getFontFile() const {
         return fontFile;
     }
-
+    
     void setFontFile(const QString& fontFile) {
         this->fontFile = fontFile;
     }
@@ -418,6 +426,7 @@ protected:
     double lineSpacingFactor;
     QString fontName;
     QString fontFile;
+    QString bigFontFile;
     double angle;
     double xScale;
     TextFlags flags;

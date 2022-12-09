@@ -22,6 +22,7 @@
 #include "RS.h"
 #include "RFontList.h"
 #include "RSettings.h"
+#include "RShxFont.h"
 
 RResourceList<RFont> RFontList::res;
 
@@ -36,13 +37,18 @@ void RFontList::init() {
         QString fileName = fontFileList.at(i);
         QFileInfo fi(fileName);
 
-        QString resName = fi.completeBaseName();
+        QString resName = fi.fileName();
 
         if (RS::mapContainsCaseInsensitive(res.resMap, resName)) {
             continue;
         }
 
-        res.resMap.insert(resName, new RFont(fi.absoluteFilePath()));
+        if (fi.fileName().endsWith(".shx", Qt::CaseInsensitive)) {
+            res.resMap.insert(resName, new RShxFont(fi.absoluteFilePath()));
+        }
+        else {
+            res.resMap.insert(resName, new RFont(fi.absoluteFilePath()));
+        }
     }
 
     res.resSubstitutionMap.insert("txt", "standard");
@@ -105,16 +111,14 @@ void RFontList::uninit() {
  * \return True if the given font name refers to a CAD font, false if it
  *      refers to a TTF font.
  */
-bool RFontList::isCadFont(const QString& fontName, const QString& fontFile) {
-    QString fontSubName = res.getSubName(fontName);
-    RFont* font = get(fontSubName);
-    if (font==NULL) {
-        if (fontSubName!=fontName) {
-            return false;
-        }
-        return fontFile.toLower().contains(".shx");
-    }
-    return font->isValid();
+bool RFontList::isCadFont(const QString& fontName, const QString& fontFile, const QString& bigFontFile) {
+    if (!bigFontFile.isEmpty())
+        return true;
+    if (fontFile.endsWith(".shx", Qt::CaseInsensitive))
+        return true;
+    if (fontName.endsWith(".cxf", Qt::CaseInsensitive))
+        return true;
+    return false;
 }
 
 QStringList RFontList::getNames() {
@@ -125,4 +129,23 @@ QStringList RFontList::getNames() {
 
 RFont* RFontList::get(const QString& resName, bool substitute) {
     return res.get(resName, substitute);
+}
+
+RFont* RFontList::getOrCreate(const QString& resName, QString docPath, bool substitute) {
+    RFont* font = res.get(resName, substitute);
+    if (font != NULL)
+        return font;
+
+    QFileInfo fi(docPath);
+    QFileInfo fi2(fi.absoluteDir(), resName);
+    if (fi2.exists()) {
+        if (resName.endsWith(".shx", Qt::CaseInsensitive)) {
+            font = new RShxFont(fi2.absoluteFilePath());
+        }
+        else {
+            font = new RFont(fi2.absoluteFilePath());
+        }
+        res.resMap.insert(resName, font);
+    }
+    return font;
 }

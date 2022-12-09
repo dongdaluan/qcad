@@ -295,11 +295,13 @@ bool dxfRW::writeTextstyle(DRW_Textstyle *ent){
     if (version > DRW::AC1009) {
         writer->writeUtf8String(3, ent->font);
         writer->writeUtf8String(4, ent->bigFont);
+        writer->writeUtf8String(1000, ent->fontName);
         if (ent->fontFamily != 0)
             writer->writeInt32(1071, ent->fontFamily);
     } else {
         writer->writeUtf8Caps(3, ent->font);
         writer->writeUtf8Caps(4, ent->bigFont);
+        writer->writeUtf8String(1000, ent->fontName);
     }
     return true;
 }

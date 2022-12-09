@@ -769,7 +769,7 @@ QString RTextBasedData::toEscapedText(const QTextDocument& textDocument, const R
             }
 
             if (fontChanged) {
-                if (RFontList::isCadFont(fontFamily, "")) {
+                if (RFontList::isCadFont(fontFamily, "", "")) {
                     ret += QString("\\F%1|c0;")
                             .arg(fontFamily);
                 }

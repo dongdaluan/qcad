@@ -241,6 +241,10 @@ public:
     void setPixelSizeHint(double s);
     double getPixelSizeHint() const;
 
+#ifdef _DEBUG
+    void setString(QString ch);
+    QString getString() const;
+#endif
     double getDistanceTo(const RVector& point) const;
 
     void addPoint(const RVector& position);
@@ -273,6 +277,7 @@ public:
     static RVector getMaxList(QList<RPainterPath>& pps);
 
 private:
+    QString str;
     int zLevel;
     QPen pen;
     QBrush brush;

@@ -95,7 +95,7 @@ public:
         return ret.join(",");
     }
 
-    bool load();
+    virtual bool load();
 
     /**
      * \return True if this font is already loaded.
@@ -136,7 +136,7 @@ public:
     //    return glyphMap.values()
     //}
 
-private:
+protected:
     //! list of glyphs as painter paths (letters)
     QMap<QChar, RPainterPath> glyphMap;
     //! list of shapes (used for complex line types)

@@ -57,7 +57,10 @@ RPainterPath::RPainterPath(const RPainterPath& other) :
     modes(other.modes),
     points(other.points),
     featureSize(other.featureSize),
-    pixelSizeHint(other.pixelSizeHint) {
+#ifdef _DEBUG
+    str(other.str),
+#endif
+    pixelSizeHint(other.pixelSizeHint){
 
     // detach original shapes:
     for (int i=0; i<other.originalShapes.length(); i++) {
@@ -478,6 +481,15 @@ void RPainterPath::setPixelSizeHint(double s) {
 double RPainterPath::getPixelSizeHint() const {
     return pixelSizeHint;
 }
+
+#ifdef _DEBUG
+void RPainterPath::setString(QString str) {
+    this->str = str;
+}
+QString RPainterPath::getString() const {
+    return str;
+}
+#endif
 
 /**
  * \return Z-level of the painter path.

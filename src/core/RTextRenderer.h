@@ -122,6 +122,16 @@ private:
         double& descent,
         double& usedHeight);
 
+    QList<RPainterPath> getPainterPathsForBlockShx(
+        const QString& blockText,
+        const QList<QTextLayout::FormatRange>& formats,
+        double& horizontalAdvance,
+        double& horizontalAdvanceNoSpacing,
+        double& horizontalAdvanceNoTrailingSpace,
+        double& ascent,
+        double& descent,
+        double& usedHeight);
+
     void preparePath(RPainterPath& path,
         const RColor& color,
         double cursor,
@@ -162,6 +172,19 @@ private:
         return "";
     }
 
+    void setBlockBigFontFile(const QString& f) {
+        if (!blockBigFontFile.isEmpty()) {
+            blockBigFontFile.top() = f;
+        }
+    }
+
+    QString getBlockBigFontFile() const {
+        if (!blockBigFontFile.isEmpty()) {
+            return blockBigFontFile.top();
+        }
+        return "";
+    }
+
     void setUseCadFont(bool on) {
         if (!useCadFont.isEmpty()) {
             useCadFont.top() = on;
@@ -174,6 +197,8 @@ private:
         }
         return false;
     }
+
+    bool getUseShxFont() const;
 
     void setBlockBold(bool on) {
         if (!blockBold.isEmpty()) {
@@ -375,6 +400,7 @@ private:
     QStack<double> blockHeight;
     QStack<QString> blockFont;
     QStack<QString> blockFontFile;
+    QStack<QString> blockBigFontFile;
     QStack<bool> blockBold;
     QStack<bool> blockItalic;
     QStack<bool> blockUnderline;

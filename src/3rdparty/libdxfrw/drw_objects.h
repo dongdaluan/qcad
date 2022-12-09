@@ -368,6 +368,7 @@ public:
     double lastHeight;      /*!< Last height used, code 42 */
     UTF8STRING font;        /*!< primary font file name, code 3 */
     UTF8STRING bigFont;     /*!< bigfont file name or blank if none, code 4 */
+    UTF8STRING fontName;    /*!< font family name, code 1000*/
     int fontFamily;         /*!< ttf font family, italic and bold flags, code 1071 */
 };
 

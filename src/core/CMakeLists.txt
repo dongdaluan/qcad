@@ -52,6 +52,7 @@ add_library(qcadcore SHARED
     RFileImporterRegistry.cpp RFileImporterRegistry.h
     RFocusListener.h
     RFont.cpp RFont.h
+    RShxFont.cpp RShxFont.h
     RFontList.cpp RFontList.h
     RGlobal.h
     RGraphicsScene.cpp RGraphicsScene.h
