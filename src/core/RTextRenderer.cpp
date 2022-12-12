@@ -514,6 +514,21 @@ void RTextRenderer::renderSimple() {
     }
 }
 
+void adjust(int& pos, int& lastPos, int& i, QString text, QStringList& literals, QStringList& formattings) {
+    if (pos - lastPos > 1 && i > 0)
+    {
+        literals.removeAt(i - 1);
+        i--;
+        for (int j = lastPos; j < pos; j++)
+        {
+            auto s = text.mid(j, 1);
+            literals.insert(i++, s);
+            formattings.append(s);
+        }
+        literals.insert(i++, "");
+    }
+}
+
 /**
  * Renders the text data into painter paths.
  */
@@ -562,20 +577,33 @@ void RTextRenderer::render() {
     int pos = 0;
     int i=1;
     QRegularExpressionMatch match;
+    int lastPos = 0;
     while ((pos = RS::indexIn(rxAllLocal, match, text, pos)) != -1) {
         QString formatting = RS::captured(rxAllLocal, match, 1);
         //qDebug() << "formatting:" << formatting;
+        int len = RS::matchedLength(rxAllLocal, match);
+        adjust(pos, lastPos, i, text, literals, formattings);
 
         // space is literal and also formatting (optional line break):
         if (RS::exactMatch(rxOptionalBreak, formatting)) {
-            literals.insert(i++, formatting);
+            literals.removeAt(i - 1);
+            i--;
+
+            int l = formatting.length();
+            for (int j = 0; j < l; j++) {
+                literals.insert(i++, formatting.at(j));
+                formattings.append(formatting.at(j));
+            }
+        }
+        else {
             formattings.append(formatting);
         }
-
-        formattings.append(formatting);
-        pos += RS::matchedLength(rxAllLocal, match);
+        pos += len;
+        lastPos = pos;
         i++;
     }
+    pos = text.length();
+    adjust(pos, lastPos, i, text, literals, formattings);
 
 //    qDebug() << "literals with space:" << literals;
 //    qDebug() << "formattings (after block):" << formattings;
@@ -647,6 +675,8 @@ void RTextRenderer::render() {
 
     // iterate through all text blocks:
     for (int i=0; i<literals.size() || insertLineBreak; ++i) {
+        if (i >= literals.size())
+            break;
 //        qDebug() << "------------------------------------------------------------------------------------------------- rendering literal:" << i;
 
         // insert auto line wrap and render same block again but on new line:
@@ -662,7 +692,7 @@ void RTextRenderer::render() {
                 formats = breakPointFormats;
                 currentFormat = breakPointCurrentFormat;
                 //lineBlockTransforms = breakPointLineBlockTransforms;
-                i = breakPointI;
+                //i = breakPointI;
 //                while (textLayouts.length() > breakPointTextLayoutsLength && breakPointTextLayoutsLength>0) {
 //                    textLayouts.removeLast();
 //                }
@@ -679,7 +709,7 @@ void RTextRenderer::render() {
                 //qDebug() << "after rb: tls:" << textLayouts.length();
                 //qDebug() << "after rb: pps:" << painterPaths.length();
 
-                breakPointI = -1;
+                //breakPointI = -1;
                 breakPointTextLayoutsLength = -1;
                 breakPointLinePathsLength = -1;
                 breakPointLineBlockTransformsLength = -1;
@@ -731,6 +761,7 @@ void RTextRenderer::render() {
         bool paragraphFeed = false;
         bool xFeed = false;
         bool heightChange = false;
+        bool weightChange = false;
         bool stackedText = false;
         bool fontChange = false;
         bool underlineChange = false;
@@ -747,6 +778,7 @@ void RTextRenderer::render() {
             colorChange = RS::exactMatch(rxColorChangeCustom, formatting) ||
                 RS::exactMatch(rxColorChangeIndex, formatting);
             heightChange = RS::exactMatch(rxHeightChange, formatting);
+            weightChange = RS::exactMatch(rxWidthChange, formatting);
             stackedText = RS::exactMatch(rxStackedText, formatting);
             lineFeed = RS::exactMatch(rxLineFeed, formatting);
             paragraphFeed = RS::exactMatch(rxParagraphFeed, formatting);
@@ -754,10 +786,10 @@ void RTextRenderer::render() {
                 xFeed = RS::exactMatch(rxXFeed, formatting);
             }
             blockEnd = RS::exactMatch(rxEndBlock, formatting);
-            optionalBreak = RS::exactMatch(rxOptionalBreak, formatting);
+            optionalBreak = false;// RS::exactMatch(rxOptionalBreak, formatting);
         }
 
-        optionalBreakText = RS::exactMatch(rxOptionalBreak, textBlock);
+        optionalBreakText = false;// RS::exactMatch(rxOptionalBreak, textBlock);
 
         bool start = (i==0);
         bool end = (i==literals.size()-1);
@@ -776,7 +808,7 @@ void RTextRenderer::render() {
         // due to line feed, height change, font change, ...:
         if (target==RichText ||
             lineFeed || paragraphFeed || xFeed || heightChange || underlineChange || stackedText ||
-            fontChange || colorChange || end ||
+            weightChange || fontChange || colorChange || end ||
             (blockEnd && blockChangedHeightOrFont) ||
             optionalBreak || wrap) {
 
@@ -816,9 +848,9 @@ void RTextRenderer::render() {
 //                        breakPointCurrentFormat = currentFormat;
 //                        // start new line _after_ white space and skip whitespace in case of break:
 //                        breakPointI = i+1;
-                        breakPointTextLayoutsLength = textLayouts.length();
-                        breakPointLineBlockTransformsLength = lineBlockTransforms.length();
-                        breakPointLinePathsLength = linePaths.length();
+                        //breakPointTextLayoutsLength = textLayouts.length();
+                        //breakPointLineBlockTransformsLength = lineBlockTransforms.length();
+                        //breakPointLinePathsLength = linePaths.length();
 //                        //breakPointPainterPathsLength = painterPaths.length();
                     }
 
@@ -857,12 +889,12 @@ void RTextRenderer::render() {
 
                     // detected wrap:
 //                    qDebug() << "detect wrap";
-                    if (!noBreakFirstBlock && breakPointI>=0) {
+                    if (!noBreakFirstBlock) {
 //                        qDebug() << "detect wrap: 001";
 //                        qDebug() << "detect wrap cur: " << xCursor + horizontalAdvanceNoTrailingSpace * getBlockHeight() * textData.getXScale();
 //                        qDebug() << "detect wrap text w: " << textData.getTextWidth();
-                        // line break needed:
-                        if (wrap && xCursor + horizontalAdvanceNoTrailingSpace * getBlockHeight() * textData.getXScale() > textData.getTextWidth()) {
+                        // line break needed:                        
+                        if (wrap && xCursor + (horizontalAdvance + horizontalAdvanceNoTrailingSpace) * getBlockHeight() * textData.getXScale() > textData.getTextWidth()) {
 //                            qDebug() << "insert wrap before:" << textBlock;
 
                             insertLineBreak = true;
@@ -1045,7 +1077,7 @@ void RTextRenderer::render() {
                     }
 
                     // detected wrap:
-                    if (!noBreakFirstBlock && breakPointI>=0) {
+                    if (!noBreakFirstBlock) {
                         // line break needed:
                         if (wrap && xCursor + qMax(horizontalAdvance[0], horizontalAdvance[1]) * getBlockHeight() * heightFactor > textData.getTextWidth()) {
 //                            qDebug() << "insert wrap before stacked text:" << textBlock;

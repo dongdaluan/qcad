@@ -50,7 +50,8 @@ protected:
 	QString desc;
 	Type type;
 	uint16_t indexCount;
-	uint16_t rangeCount;
+	uint16_t rangeCount; 
+	uint32_t fontHeight = 0;
 	std::vector<EscapeRange> ranges;
 	std::vector<uint16_t> indexes;
 

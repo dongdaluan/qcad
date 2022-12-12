@@ -67,9 +67,8 @@
 #include "RVector.h"
 #include "RView.h"
 #include "RXLineEntity.h"
-#include "dx_data.h"
-#include "dx_iface.h"
-
+#include <libdxfrw/libdxfrw.h>
+#include <libdxfrw/libdwgr.h>
 
 const double dxfColors[][3] = {
                                   {0,0,0},                // unused
@@ -328,8 +327,18 @@ const double dxfColors[][3] = {
                                   {0.732,0.732,0.732},
                                   {0.866,0.866,0.866},
                                   {1,1,1}                 // 255
-}
-;
+};
+std::map<std::string, std::string> cadver = { {"AC1006", "R10"},
+    {"AC1009", "R11 ºÍ R12"},
+    {"AC1012", "R13"},
+    {"AC1014", "R14"},
+    {"AC1015", "AutoCAD 2000"},
+    {"AC1018", "AutoCAD 2004"},
+    {"AC1021", "AutoCAD 2007"},
+    {"AC1024", "AutoCAD 2010"},
+    {"AC1027", "AutoCAD 2013"},
+    {"AC1032", "AutoCAD 2018"}, 
+};
 
 RDxfImporter::RDxfImporter(RDocument& document, RMessageHandler* messageHandler, RProgressHandler* progressHandler)
     : RFileImporter(document, messageHandler, progressHandler) {
@@ -374,26 +383,23 @@ bool RDxfImporter::importFile(const QString& fileName, const QString& nameFilter
 
     RImporter::startImport();
 
-
-    dxfRW* dxf = new dxfRW(fileName.toUtf8());
-    bool success = dxf->read(this, false);
-    delete dxf;
+    bool useDwg = nameFilter.contains("DWG");
+    bool success = false;
+    if (useDwg) {
+        dwgR* dwg = new dwgR(fileName.toLocal8Bit());
+        success = dwg->read(this, false);
+        delete dwg;
+    }
+    else {
+        dxfRW* dxf = new dxfRW(fileName.toLocal8Bit());
+        success = dxf->read(this, false);
+        delete dxf;
+    }
     if (!success)
     {
         qWarning() << "Cannot open DXF file: " << fileName;
         return false;
     }
-
-    document->setFileVersion("R15 (2000) DXF Drawing (libdxfrw) (*.dxf)");
-
-    // make sure dimension font is set to standard,
-    // the only dimension font supported by the QCAD CE:
-    document->setDimensionFont("Standard");
-
-    // dimension text color always by block:
-    QVariant v;
-    v.setValue(RColor(RColor::ByBlock));
-    document->setKnownVariable(RS::DIMCLRT, v);    
 
     RImporter::endImport();
 
@@ -452,6 +458,47 @@ QString RDxfImporter::decode(const QString& str) {
 }
 
 void RDxfImporter::addHeader(const DRW_Header* data) {
+
+    auto it = data->vars.find("$ACADVER");
+    QString ver = "Unknown version";
+    if (it != data->vars.end())
+    {
+        auto it2 = cadver.find(it->second->content.s->c_str());
+        if (it2 != cadver.end()) {
+            ver = it2->second.c_str();
+        }
+    }
+    document->setFileVersion(ver + " DXF Drawing (*.dxf)");
+    // TODO: add known variable
+    
+    // make sure dimension font is set to standard,
+    // the only dimension font supported by the QCAD CE:
+    document->setDimensionFont("Standard");
+
+    // dimension text color always by block:
+    QVariant v;
+    v.setValue(RColor(RColor::ByBlock));
+    document->setKnownVariable(RS::DIMCLRT, v);
+
+    for (it = data->vars.begin(); it != data->vars.end(); it++) {
+        QVariant var;
+        switch (it->second->type())
+        {
+        case DRW_Variant::STRING:
+            var = it->second->content.s->c_str();
+            break;
+        case DRW_Variant::INTEGER:
+            var = it->second->content.i;
+            break;
+        case DRW_Variant::DOUBLE:
+            var = it->second->content.d;
+            break;
+        case DRW_Variant::COORD:
+        default:
+            continue;
+        }
+        document->setVariable(it->first.c_str(), var);
+    }
 }
 
 void RDxfImporter::addLType(const DRW_LType& data)
@@ -721,7 +768,7 @@ void RDxfImporter::addMText(const DRW_MText& data) {
             s.font = "Unicode";
         }
         else {
-            s.font = document->getKnownVariable(RS::TEXTSTYLE, "Standard").toString().toUtf8();
+            s.font = document->getKnownVariable(RS::TEXTSTYLE, "Standard").toString().toUtf8().data();
         }
     }
 

@@ -96,6 +96,7 @@ bool RShxFont::load() {
             fread(indexTmp, 1, it->len, pf);
             if (it->ch == 0) {
                 indexTmp[it->len] = 0;
+                fontHeight = indexTmp[it->len - 4];
                 desc = indexTmp;
             }
             else
@@ -121,6 +122,7 @@ bool RShxFont::load() {
                     indexTmp = (char*)realloc(indexTmp, firstShapeDef + 1);
                     fread(indexTmp, 1, firstShapeDef, pf);
                     indexTmp[firstShapeDef] = 0;
+                    fontHeight = indexTmp[firstShapeDef-4];
                     desc = indexTmp;
                 }
                 for (int i = 1; i < indexCount; i++) {
@@ -196,7 +198,7 @@ void RShxFont::parseDef(uint16_t ch, char* buf, int len)
     containsArcs = false;
     penX = 0;
     penY = 0; 
-    scale = 1.;
+    scale = 6. / fontHeight;
     lines.clear();
     curLine.pts.clear();
     while (len > 0)

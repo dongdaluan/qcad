@@ -22,6 +22,8 @@
 QStringList RDxfImporterFactory::getFilterStrings() {
     QStringList ret;
     ret << QString("DXF Files [libdxfrw] (*.dxf)");
+    ret << QString("DXF Binary Files [libdxfrw] (*.dxf)");
+    ret << QString("DWG Files [libdxfrw] (*.dwg)");
     return ret;
 }
 
@@ -34,6 +36,10 @@ int RDxfImporterFactory::canImport(const QString& fileName, const QString& nameF
 
     // supported file suffix:
     if (fi.suffix().toLower() == "dxf") {
+        return 100;
+    }
+    
+    if (fi.suffix().toLower() == "dwg") {
         return 100;
     }
 
