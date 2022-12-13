@@ -660,6 +660,7 @@ void RTextRenderer::render() {
 
     width = 0.0;
     height = 0.0;
+    double xScale = 1.0;
 
     bool insertLineBreak = false;
     // don't wrap first block in line:
@@ -894,7 +895,7 @@ void RTextRenderer::render() {
 //                        qDebug() << "detect wrap cur: " << xCursor + horizontalAdvanceNoTrailingSpace * getBlockHeight() * textData.getXScale();
 //                        qDebug() << "detect wrap text w: " << textData.getTextWidth();
                         // line break needed:                        
-                        if (wrap && xCursor + (horizontalAdvance + horizontalAdvanceNoTrailingSpace) * getBlockHeight() * textData.getXScale() > textData.getTextWidth()) {
+                        if (wrap && xCursor + (horizontalAdvance + horizontalAdvanceNoTrailingSpace) * getBlockHeight() * textData.getXScale() * xScale > textData.getTextWidth()) {
 //                            qDebug() << "insert wrap before:" << textBlock;
 
                             insertLineBreak = true;
@@ -906,7 +907,7 @@ void RTextRenderer::render() {
 
                     // transform to scale text from 1.0 to current text height:
                     QTransform sizeTransform;
-                    sizeTransform.scale(getBlockHeight() * textData.getXScale(), getBlockHeight());
+                    sizeTransform.scale(getBlockHeight() * textData.getXScale() * xScale, getBlockHeight());
 
                     // transform for current block due to xCursor position:
                     QTransform blockTransform;
@@ -940,7 +941,7 @@ void RTextRenderer::render() {
                     //qDebug() << "xCursor" << xCursor;
                     //qDebug() << "yCursor" << yCursor;
 
-                    xCursor += horizontalAdvance * getBlockHeight() * textData.getXScale();
+                    xCursor += horizontalAdvance * getBlockHeight() * textData.getXScale() * xScale;
                 }
             }
 
@@ -1035,7 +1036,7 @@ void RTextRenderer::render() {
 
                         // transform to scale text from 1.0 to current text height * 0.4:
                         QTransform sizeTransform;
-                        sizeTransform.scale(getBlockHeight()*heightFactor*textData.getXScale(), getBlockHeight()*heightFactor);
+                        sizeTransform.scale(getBlockHeight()*heightFactor*textData.getXScale() * xScale, getBlockHeight()*heightFactor);
 
                         // adjust height stored in layout accordingly:
                         if (!textLayouts.isEmpty()) {
@@ -1514,7 +1515,7 @@ void RTextRenderer::render() {
                     RFont* f = RFontList::get(getBlockFont());
                     if (f!=NULL && f->isValid()) {
                         if (prevTtf) {
-                            xCursor += f->getLetterSpacing() / 9.0 * getBlockHeight() * textData.getXScale();
+                            xCursor += f->getLetterSpacing() / 9.0 * getBlockHeight() * textData.getXScale() * xScale;
                         }
                     }
                 }
@@ -1556,6 +1557,15 @@ void RTextRenderer::render() {
                     openTags.top().append("span");
                 }
                 continue;
+            }
+        }
+        {
+            // width change:
+            QRegularExpressionMatch match;
+            if (RS::exactMatch(rxWidthChange, match, formatting)) {
+                bool factor = RS::captured(rxWidthChange, match, 2) == "x";
+
+                xScale = RS::captured(rxHeightChange, match, 1).toDouble();
             }
         }
 

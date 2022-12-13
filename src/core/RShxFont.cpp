@@ -198,7 +198,7 @@ void RShxFont::parseDef(uint16_t ch, char* buf, int len)
     containsArcs = false;
     penX = 0;
     penY = 0; 
-    scale = 6. / fontHeight;
+    scale = 9. / fontHeight;
     lines.clear();
     curLine.pts.clear();
     while (len > 0)

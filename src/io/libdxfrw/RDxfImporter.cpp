@@ -791,6 +791,7 @@ void RDxfImporter::addMText(const DRW_MText& data) {
     );
     d.setFontFile(s.font.c_str());
     d.setBigFontFile(s.bigFont.c_str());
+    d.setXScale(s.width);
 
     QSharedPointer<RTextEntity> entity(new RTextEntity(document, d));
     importEntity(entity, &data);
@@ -892,6 +893,7 @@ void RDxfImporter::addText(const DRW_Text& data) {
     );
     textBasedData.setFontFile(s.font.c_str());
     textBasedData.setBigFontFile(s.bigFont.c_str());
+    textBasedData.setXScale(data.widthscale);
 
     textBasedData.setPosition(position);
 
