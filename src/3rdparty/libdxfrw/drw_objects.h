@@ -350,7 +350,9 @@ public:
         tType = DRW::STYLE;
         height = oblique = 0.0;
         width = lastHeight = 1.0;
-        font="txt";
+        font="";
+        fontName = "";
+        bigFont = "";
         genFlag = 0; //2= X mirror, 4= Y mirror
         fontFamily = 0;
         DRW_TableEntry::reset();

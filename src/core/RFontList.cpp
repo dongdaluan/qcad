@@ -112,11 +112,13 @@ void RFontList::uninit() {
  *      refers to a TTF font.
  */
 bool RFontList::isCadFont(const QString& fontName, const QString& fontFile, const QString& bigFontFile) {
+    if (!fontName.isEmpty() && !fontName.endsWith(".shx", Qt::CaseInsensitive)&& !fontName.endsWith(".cxf", Qt::CaseInsensitive))
+        return false;
     if (!bigFontFile.isEmpty())
         return true;
     if (fontFile.endsWith(".shx", Qt::CaseInsensitive))
         return true;
-    if (fontName.endsWith(".cxf", Qt::CaseInsensitive))
+    if (fontFile.endsWith(".cxf", Qt::CaseInsensitive))
         return true;
     return false;
 }

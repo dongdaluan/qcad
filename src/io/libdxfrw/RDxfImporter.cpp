@@ -783,7 +783,7 @@ void RDxfImporter::addMText(const DRW_MText& data) {
         valign, halign,
         dir, lss,
         data.interlin,
-        mtextString, dxfServices.fixFontName(s.fontName.c_str()),
+        mtextString, s.fontName.c_str(),
         bold,
         italic,
         data.angle,
@@ -884,12 +884,14 @@ void RDxfImporter::addText(const DRW_Text& data) {
         RS::LeftToRight, RS::Exact,
         1.0,
         data.text.c_str(),
-        dxfServices.fixFontName(s.fontName.c_str()),
+        s.fontName.c_str(),
         bold,                      // bold
         italic,                    // italic
         data.angle,
         true                         // simple
     );
+    textBasedData.setFontFile(s.font.c_str());
+    textBasedData.setBigFontFile(s.bigFont.c_str());
 
     textBasedData.setPosition(position);
 
