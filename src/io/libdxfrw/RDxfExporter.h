@@ -60,6 +60,13 @@ class RXLineEntity;
  */
 class QCADDXF_EXPORT RDxfExporter: public RFileExporter, public DRW_Interface {
 public:
+    struct TextStyle {
+        QString name;
+        QString font;
+        QString bigFont;
+        QString fontFile;
+        double width;
+    };
     RDxfExporter(RDocument& document,
         RMessageHandler* messageHandler = NULL,
         RProgressHandler* progressHandler = NULL);
@@ -258,7 +265,25 @@ public:
     virtual void writeVports() override;
     virtual void writeDimstyles() override;
     virtual void writeAppId() override;
+
+    void writeEntity(QSharedPointer<REntity>& entity);
+    void writePoint(QSharedPointer<RPointEntity>& entity);
+    void writeLine(QSharedPointer<RLineEntity>& entity);
+    void writeCircle(QSharedPointer<RCircleEntity>& entity);
+    void writeArc(QSharedPointer<RArcEntity>& entity);
+    void writeEllipse(QSharedPointer<REllipseEntity>& entity);
+    void writePolyline(QSharedPointer<RPolylineEntity>& entity);
+    void writeSpline(QSharedPointer<RSplineEntity>& entity);
+    void writeText(QSharedPointer<RTextEntity>& entity);
+    void writeHatch(QSharedPointer<RHatchEntity>& entity);
+    void writeImage(QSharedPointer<RImageEntity>& entity);
+    void setEntity(DRW_Entity* e, QSharedPointer<REntity> entity);
 #pragma endregion
+
+private:
+    QString addTextStyle(QString name, QString fontName, QString fontFile, QString bigFont, double xScale);
+    QMap<QString, TextStyle> _textStyles;
+    dxfRW* _dxfW;
 };
 
 Q_DECLARE_METATYPE(RDxfExporter*)

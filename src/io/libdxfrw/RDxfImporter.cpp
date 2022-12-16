@@ -70,7 +70,7 @@
 #include <libdxfrw/libdxfrw.h>
 #include <libdxfrw/libdwgr.h>
 
-const double dxfColors[][3] = {
+double dxfColors[][3] = {
                                   {0,0,0},                // unused
                                   {1,0,0},                // 1
                                   {1,1,0},
@@ -549,10 +549,6 @@ void RDxfImporter::addLayer(const DRW_Layer& data) {
     }
     RLineweight::Lineweight lw = RDxfServices::numberToWeight(DRW_LW_Conv::lineWidth2dxfInt(data.lWeight));
 
-    if (lw == RLineweight::WeightByLayer) {
-        lw = RLineweight::Weight005;
-    }
-
     QSharedPointer<RLayer> layer(
         new RLayer(
             document,
@@ -792,6 +788,7 @@ void RDxfImporter::addMText(const DRW_MText& data) {
     d.setFontFile(s.font.c_str());
     d.setBigFontFile(s.bigFont.c_str());
     d.setXScale(s.width);
+    d.setStyleName(s.name.c_str());
 
     QSharedPointer<RTextEntity> entity(new RTextEntity(document, d));
     importEntity(entity, &data);
@@ -824,7 +821,7 @@ void RDxfImporter::addText(const DRW_Text& data) {
             //refPoint = RVector(data.apx, data.apy);
             break;
         case DRW_Text::HAligned: // aligned (TODO)
-            halign = RS::HAlignCenter;
+            halign = RS::HAlignAlign;
             //refPoint = RVector((data.ipx+data.apx)/2.0,
             //                     (data.ipy+data.apy)/2.0);
             //angle =
@@ -832,11 +829,11 @@ void RDxfImporter::addText(const DRW_Text& data) {
             //        RVector(data.apx, data.apy));
             break;
         case DRW_Text::HMiddle: // Middle (TODO)
-            halign = RS::HAlignCenter;
+            halign = RS::HAlignMid;
             //refPoint = RVector(data.apx, data.apy);
             break;
         case DRW_Text::HFit: // fit (TODO)
-            halign = RS::HAlignCenter;
+            halign = RS::HAlignFit;
             //            refPoint = RVector((data.ipx+data.apx)/2.0,
             //                                 (data.ipy+data.apy)/2.0);
             //            angle =
@@ -894,6 +891,7 @@ void RDxfImporter::addText(const DRW_Text& data) {
     textBasedData.setFontFile(s.font.c_str());
     textBasedData.setBigFontFile(s.bigFont.c_str());
     textBasedData.setXScale(data.widthscale);
+    textBasedData.setStyleName(s.name.c_str());
 
     textBasedData.setPosition(position);
 
@@ -905,12 +903,21 @@ void RDxfImporter::addText(const DRW_Text& data) {
         textBasedData.setAlignmentPoint(position);
     }
     else {
-        // QCAD 1 compatibility:
-        if (s.font == "txt" && qAbs(alignmentPoint.x) < RS::PointTolerance && qAbs(alignmentPoint.y) < RS::PointTolerance) {
-            textBasedData.setAlignmentPoint(position);
+        if (halign == RS::HAlignLeft && valign == RS::VAlignBase)
+        {
+            textBasedData.setAlignmentPoint(alignmentPoint);
+        }
+        if ((halign == RS::HAlignFit || halign == RS::HAlignAlign) && valign == RS::VAlignTop) {
+            width = sqrt(position.dot(alignmentPoint));
+            if (width <= 0.0)
+            {
+                width = 1.0;
+            }
+            textBasedData.setTextWidth(width);
+            textBasedData.setAlignmentPoint(alignmentPoint);
         }
         else {
-            textBasedData.setAlignmentPoint(alignmentPoint);
+            textBasedData.setAlignmentPoint(position);
         }
     }
 
@@ -936,6 +943,7 @@ void RDxfImporter::addLeader(const DRW_Leader* data) {}
 
 void RDxfImporter::addHatch(const DRW_Hatch* data) {
     RHatchData d;
+    d.setPatternName(data->name.c_str());
     d.setSolid(data->solid);
     d.setAngle(data->angle);
     d.setScale(data->scale);
@@ -947,19 +955,31 @@ void RDxfImporter::addHatch(const DRW_Hatch* data) {
         auto loop = *it;
         d.newLoop();
         for (auto it2 = loop->objlist.begin(); it2 != loop->objlist.end(); it2++) {
-            auto ent = dynamic_cast<DRW_LWPolyline*>(*it2);
-            if (ent != nullptr) {
-                bool closed = ent->flags & 0x01;
-                QList<RVector> verts;
-                for (auto it3 = ent->vertlist.begin(); it3 != ent->vertlist.end(); it3++)
-                {
-                    auto vd = *it3;
-                    RVector v(vd->x, vd->y);
-                    verts.push_back(v);
+            auto obj = *it2;
+            if (obj->eType == DRW::LINE)
+            {
+                auto ent = dynamic_cast<DRW_Line*>(obj);
+                if (ent != nullptr) {
+                    QSharedPointer<RShape> shape(new RLine(ent->basePoint.x, ent->basePoint.y, ent->secPoint.x, ent->secPoint.y));
+                    d.addBoundary(shape);
                 }
-                QSharedPointer<RShape> shape(new RPolyline(verts, closed));
-                d.addBoundary(shape);
-            }            
+            }
+            else if (obj->eType == DRW::LWPOLYLINE)
+            {
+                auto ent = dynamic_cast<DRW_LWPolyline*>(obj);
+                if (ent != nullptr) {
+                    bool closed = ent->flags & 0x01;
+                    QList<RVector> verts;
+                    for (auto it3 = ent->vertlist.begin(); it3 != ent->vertlist.end(); it3++)
+                    {
+                        auto vd = *it3;
+                        RVector v(vd->x, vd->y);
+                        verts.push_back(v);
+                    }
+                    QSharedPointer<RShape> shape(new RPolyline(verts, closed));
+                    d.addBoundary(shape);
+                }
+            }
         }
     }
 
@@ -976,10 +996,10 @@ void RDxfImporter::addHatch(const DRW_Hatch* data) {
             double scale = 1.0;
             double sinDelta = sin(patternLine.angle);
             double cosDelta = cos(patternLine.angle);
-            double deltax = cosDelta * define->delta.x / scale + sinDelta * define->delta.y / scale;
-            double deltay = -sinDelta * define->delta.x / scale + cosDelta * define->delta.y / scale;
+            double deltax = cosDelta * define->delta.x + sinDelta * define->delta.y;
+            double deltay = -sinDelta * define->delta.x + cosDelta * define->delta.y;
 
-            patternLine.offset = RVector(deltax, deltay);
+            patternLine.offset = RVector(deltax / scale, deltay / scale);
             for (auto it2 = define->segments.begin(); it2 != define->segments.end(); it2++)
             {
                 patternLine.dashes.push_back(*it2);

@@ -160,6 +160,14 @@ public:
 
     void setText(const QString& text);
 
+    void setStyleName(const QString& styleName) {
+        this->styleName = styleName;
+    }
+
+    QString getStyleName() const {
+        return styleName;
+    }
+
     QString getFontName() const {
         return fontName;
     }
@@ -415,6 +423,7 @@ public:
 
 protected:
     QString text;
+    QString styleName;
     RVector position;
     RVector alignmentPoint;
     double textHeight;

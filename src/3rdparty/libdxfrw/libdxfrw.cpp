@@ -1210,7 +1210,7 @@ bool dxfRW::writeMText(DRW_MText *ent){
         writer->writeDouble(30, ent->basePoint.z);
         writer->writeDouble(40, ent->height);
         writer->writeDouble(41, ent->widthscale);
-        writer->writeInt16(71, ent->textgen);
+        writer->writeInt16(71, ent->attachmentPoint);
         writer->writeInt16(72, ent->alignH);
         std::string text = writer->fromUtf8String(ent->text);
 

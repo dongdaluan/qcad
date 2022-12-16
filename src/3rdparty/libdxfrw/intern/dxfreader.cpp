@@ -83,7 +83,10 @@ bool dxfReader::readRec(int *codeData) {
         readString();
     else
         //break in binary files because the conduct is unpredictable
+    {
+        auto pos = filestr->tellg();
         return false;
+    }
 
     return (filestr->good());
 }
