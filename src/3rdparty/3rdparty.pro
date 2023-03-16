@@ -8,7 +8,7 @@ SUBDIRS = \
     SUBDIRS += opennurbs
 }
 !rs_no_dxf {
-    SUBDIRS += dxflib
+    SUBDIRS += libdxfrw
 }
 
 !r_mobile {

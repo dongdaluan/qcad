@@ -71,6 +71,7 @@ SOURCES += \
     RScriptHandlerRegistry.cpp \
     RSettings.cpp \
     RShapesExporter.cpp \
+    RShxFont.cpp \
     RSingleApplication.cpp \
     RSingleton.cpp \
     RSpatialIndex.cpp \
@@ -228,6 +229,7 @@ HEADERS = \
     RSelectionListener.h \
     RSettings.h \
     RShapesExporter.h \
+    RShxFont.h \
     RSingleApplication.h \
     RSingleton.h \
     RSnap.h \
