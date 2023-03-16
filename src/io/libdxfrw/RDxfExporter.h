@@ -29,6 +29,8 @@
 #include "RRay.h"
 #include "RXLine.h"
 #include <libdxfrw/drw_interface.h>
+#include <libdxfrw/libdxfrw.h>
+#include <libdxfrw/libdwgr.h>
 
 class RArcEntity;
 class RAttributeEntity;
@@ -266,17 +268,17 @@ public:
     virtual void writeDimstyles() override;
     virtual void writeAppId() override;
 
-    void writeEntity(QSharedPointer<REntity>& entity);
-    void writePoint(QSharedPointer<RPointEntity>& entity);
-    void writeLine(QSharedPointer<RLineEntity>& entity);
-    void writeCircle(QSharedPointer<RCircleEntity>& entity);
-    void writeArc(QSharedPointer<RArcEntity>& entity);
-    void writeEllipse(QSharedPointer<REllipseEntity>& entity);
-    void writePolyline(QSharedPointer<RPolylineEntity>& entity);
-    void writeSpline(QSharedPointer<RSplineEntity>& entity);
-    void writeText(QSharedPointer<RTextEntity>& entity);
-    void writeHatch(QSharedPointer<RHatchEntity>& entity);
-    void writeImage(QSharedPointer<RImageEntity>& entity);
+    void writeEntity(const QSharedPointer<REntity>& entity);
+    void writePoint(const QSharedPointer<RPointEntity>& entity);
+    void writeLine(const QSharedPointer<RLineEntity>& entity);
+    void writeCircle(const QSharedPointer<RCircleEntity>& entity);
+    void writeArc(const QSharedPointer<RArcEntity>& entity);
+    void writeEllipse(const QSharedPointer<REllipseEntity>& entity);
+    void writePolyline(const QSharedPointer<RPolylineEntity>& entity);
+    void writeSpline(const QSharedPointer<RSplineEntity>& entity);
+    void writeText(const QSharedPointer<RTextEntity>& entity);
+    void writeHatch(const QSharedPointer<RHatchEntity>& entity);
+    void writeImage(const QSharedPointer<RImageEntity>& entity);
     void setEntity(DRW_Entity* e, QSharedPointer<REntity> entity);
 #pragma endregion
 

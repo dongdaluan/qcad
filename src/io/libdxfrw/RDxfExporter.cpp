@@ -31,7 +31,6 @@
 #include "RDimDiametricEntity.h"
 #include "RDimOrdinateEntity.h"
 #include "RDimRadialEntity.h"
-#include "RDimRotatedEntity.h"
 #include "RDimStyle.h"
 #include "RDimensionEntity.h"
 #include "RDxfExporter.h"
@@ -50,8 +49,6 @@
 #include "RTextEntity.h"
 #include "RTraceEntity.h"
 #include "RXLineEntity.h"
-#include <libdxfrw/libdxfrw.h>
-#include <libdxfrw/libdwgr.h>
 
 extern double dxfColors[][3];
 
@@ -290,9 +287,9 @@ void RDxfExporter::writeEntity(QSharedPointer<REntity>& entity)
 	}
 }
 
-void RDxfExporter::writePoint(QSharedPointer<RPointEntity>& entity) {
+void RDxfExporter::writePoint(const QSharedPointer<RPointEntity>& entity) {
 }
-void RDxfExporter::writeLine(QSharedPointer<RLineEntity>& entity) {
+void RDxfExporter::writeLine(const QSharedPointer<RLineEntity>& entity) {
 	DRW_Line line;
 	setEntity(&line, entity.dynamicCast<REntity>());
 
@@ -303,13 +300,13 @@ void RDxfExporter::writeLine(QSharedPointer<RLineEntity>& entity) {
 	line.secPoint = DRW_Coord(e.x, e.y, e.z);
 	_dxfW->writeLine(&line);
 }
-void RDxfExporter::writeCircle(QSharedPointer<RCircleEntity>& entity) {
+void RDxfExporter::writeCircle(const QSharedPointer<RCircleEntity>& entity) {
 }
-void RDxfExporter::writeArc(QSharedPointer<RArcEntity>& entity) {
+void RDxfExporter::writeArc(const QSharedPointer<RArcEntity>& entity) {
 }
-void RDxfExporter::writeEllipse(QSharedPointer<REllipseEntity>& entity) {
+void RDxfExporter::writeEllipse(const QSharedPointer<REllipseEntity>& entity) {
 }
-void RDxfExporter::writePolyline(QSharedPointer<RPolylineEntity>& entity) {
+void RDxfExporter::writePolyline(const QSharedPointer<RPolylineEntity>& entity) {
 	DRW_LWPolyline polyline;
 	setEntity(&polyline, entity.dynamicCast<REntity>());
 
@@ -327,9 +324,9 @@ void RDxfExporter::writePolyline(QSharedPointer<RPolylineEntity>& entity) {
 
 	_dxfW->writeLWPolyline(&polyline);
 }
-void RDxfExporter::writeSpline(QSharedPointer<RSplineEntity>& entity) {
+void RDxfExporter::writeSpline(const QSharedPointer<RSplineEntity>& entity) {
 }
-void RDxfExporter::writeText(QSharedPointer<RTextEntity>& entity) {
+void RDxfExporter::writeText(const QSharedPointer<RTextEntity>& entity) {
 	if (entity->getData().isSimple()) {
 		DRW_Text text;
 		setEntity(&text, entity.dynamicCast<REntity>());
