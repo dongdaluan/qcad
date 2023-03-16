@@ -3,6 +3,15 @@
 #include <qendian.h>
 #include "RShxFont.h"
 
+int char2int(char ch)
+{
+#if defined __aarch64__
+    if (ch >= 128)
+        return ch-256;
+#endif
+    return ch;
+}
+
 struct BigFontTable
 {
     uint16_t ch;
@@ -475,12 +484,12 @@ void RShxFont::parseLenDirByte(uint8_t thebyte)
 bool RShxFont::caseCode8(char*& buf, int& len)
 {
     char* pChar = (char*)buf;
-    int   dx = (*pChar);
+    int   dx = char2int(*pChar);
     penX += scale * dx;
     ++buf;
     --len;
     pChar = (char*)buf;
-    int dy = (*pChar);
+    int dy = char2int(*pChar);
     penY += scale * dy;
     ++buf;
     --len;
@@ -496,12 +505,12 @@ bool RShxFont::caseCodeC(char*& buf, int& len)
 {
     char* pChar = (char*)buf;
     double X = penX;
-    int    dx_noscale = (*pChar);
+    int    dx_noscale = char2int(*pChar);
     ++buf;
     --len;
     pChar = (char*)buf;
     double Y = penY;
-    int    dy_noscale = (*pChar);
+    int    dy_noscale = char2int(*pChar);
     ++buf;
     --len;
 
