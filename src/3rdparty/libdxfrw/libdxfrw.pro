@@ -6,7 +6,7 @@ win32-msvc {
   DEFINES += _CRT_SECURE_NO_DEPRECATE
 }
 
-INCLUDEPATH += src
+INCLUDEPATH += src ../libiconv/include
 HEADERS = \
     drw_base.h \
     drw_classes.h \
@@ -24,7 +24,7 @@ SOURCES = \
 	drw_objects.cpp \
 	libdwgr.cpp \
 	libdxfrw.cpp \
-        intern/drw_dbg.cpp \
+    intern/drw_dbg.cpp \
 	intern/drw_textcodec.cpp \
 	intern/dwgbuffer.cpp \
 	intern/dwgreader.cpp \

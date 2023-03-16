@@ -19,7 +19,7 @@ SOURCES = \
 TEMPLATE = lib
 DEFINES += QCADDXF_LIBRARY
 RC_FILE = dxf.rc
-LIBS += -l$${RLIBNAME}core -l$${RLIBNAME}entity -ldxfrw -l$${RLIBNAME}operations
+LIBS += -l$${RLIBNAME}core -l$${RLIBNAME}entity -ldxfrw -l$${RLIBNAME}operations -liconv -L../../3rdparty/libiconv/build
 r_static_libs {
     CONFIG -= plugin
     CONFIG += staticlib

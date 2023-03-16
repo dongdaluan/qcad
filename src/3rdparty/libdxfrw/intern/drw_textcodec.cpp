@@ -3,9 +3,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <cstring>
-#ifdef USE_ICONV
 #include <iconv.h>
-#endif
 #include "../drw_base.h"
 #include "drw_cptables.h"
 #include "drw_cptable932.h"
@@ -509,8 +507,7 @@ std::string DRW_ExtConverter::convertByiconv(const char* in_encode,
 	char* in_ptr = in_buf;
 	char* out_ptr = out_buf;
 	strncpy(in_buf, s->c_str(), BUF_SIZE);
-    out_buf[0] = 0;
-#ifdef USE_ICONV
+	out_buf[0] = 0;
 	iconv_t ic;
 	ic = iconv_open(out_encode, in_encode);
 	if (ic == (iconv_t)-1)
@@ -518,7 +515,6 @@ std::string DRW_ExtConverter::convertByiconv(const char* in_encode,
 	size_t il = BUF_SIZE - 1, ol = BUF_SIZE - 1;
 	iconv(ic, (const char**)&in_ptr, &il, &out_ptr, &ol);
 	iconv_close(ic);
-#endif
 	return std::string(out_buf);
 }
 
