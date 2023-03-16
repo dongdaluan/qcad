@@ -249,7 +249,7 @@ void RDxfExporter::writeDimstyles() {
 void RDxfExporter::writeAppId() {
 }
 
-void RDxfExporter::writeEntity(QSharedPointer<REntity>& entity)
+void RDxfExporter::writeEntity(const QSharedPointer<REntity>& entity)
 {
 	switch (entity->getType()) {
 	case RS::EntityPoint:
@@ -406,7 +406,7 @@ void RDxfExporter::writeText(const QSharedPointer<RTextEntity>& entity) {
 		_dxfW->writeMText(&text);
 	}
 }
-void RDxfExporter::writeHatch(QSharedPointer<RHatchEntity>& entity) {
+void RDxfExporter::writeHatch(const QSharedPointer<RHatchEntity>& entity) {
 	DRW_Hatch hatch;
 	setEntity(&hatch, entity.dynamicCast<REntity>());
 
@@ -479,7 +479,7 @@ void RDxfExporter::writeHatch(QSharedPointer<RHatchEntity>& entity) {
 
 	_dxfW->writeHatch(&hatch);
 }
-void RDxfExporter::writeImage(QSharedPointer<RImageEntity>& entity) {
+void RDxfExporter::writeImage(const QSharedPointer<RImageEntity>& entity) {
 }
 void RDxfExporter::setEntity(DRW_Entity* e, QSharedPointer<REntity> entity) {
 	auto layer = document->queryLayer(entity->getLayerId());
